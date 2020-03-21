@@ -1,38 +1,56 @@
-import sys
-
+import logging
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar,
     QPushButton, QApplication, QMainWindow)
 
-DEBUG = True
-APP_NAME = 'para'
+IS_PRODUCTION = True
+APP_NAME = 'Para'
+APP_VERSION = "1.0.0"
 
-def printdb(*args):
-    if DEBUG:
-        print(args)
+logger = logging.getLogger(__name__)
+
+def loggingSetup(baseDir):
+    # Log to file in prod
+    if IS_PRODUCTION:
+        import os
+        from datetime import datetime
+        from utils import ensureDirExist
+        logsDir = os.path.join(baseDir, 'logs')
+        ensureDirExist(logsDir)
+        fname = os.path.join(logsDir, datetime.now().strftime('para_%H_%M_%d_%m_%Y.log'))
+        logging.basicConfig(filename=fname, filemode='w', format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
+    else:
+        logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
 
 class State:
     def __init__(self):
         import os
+
+        self._setBaseDir()
+        self.downloadUrl = 'https://raw.github.com/sobkulir/test/master/hry.zip'
+        self.games = []        
+        self.gamesRootDir = os.path.join(self.baseDir, 'games')
+        self.gamesAllDir = os.path.join(self.gamesRootDir, 'all')
+        try:
+            from utils import ensureDirExist
+            ensureDirExist(self.gamesAllDir)
+        except Exception as e:
+            msg = f'Creation of the directory {os.path.abspath(self.gamesAllDir)} failed: {e}'
+            logger.critical(msg)
+            # State is initialized before all the Qt machinery starts, therefore quit() is used. 
+            print(msg)
+            quit()
+
+    def _setBaseDir(self):
+        import os
         from sys import platform
 
-        self.downloadUrl = 'https://raw.github.com/sobkulir/test/master/hry.zip'
-        self.games = []
-        baseDir = ''
+        self.baseDir = ''
         if platform == "win32":
-            baseDir = os.path.join(os.getenv('APPDATA'), APP_NAME)
+            self.baseDir = os.path.join(os.getenv('APPDATA'), APP_NAME)
         else:
             # Directory of the executed script
             # SO: https://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
-            baseDir = os.path.dirname(os.path.realpath(__file__))
-        
-        self.gamesRootDir = os.path.join(baseDir, 'games')
-        self.gamesAllDir = os.path.join(self.gamesRootDir, 'all')
-        try:
-            if not os.path.isdir(self.gamesAllDir):
-                os.makedirs(self.gamesAllDir)
-        except OSError:
-            printdb(f'Creation of the directory {self.gamesAllDir} failed')
-            # TODO: Report uzivatelovi!
+            self.baseDir = os.path.dirname(os.path.realpath(__file__))
 
     def updateGameData(self):
         import json
@@ -46,8 +64,8 @@ class State:
         try:
             gameDirs = [f.path for f in os.scandir(self.gamesAllDir) if f.is_dir()]
         except IOError as exc:
-            printdb(exc)
-            # TODO: Error: Checkli sme priecinok, ale aj ak neexistuje, treba reportnut
+            # We just log it and continue, it is not fatal, altough suspicious.
+            logger.debug(f'The directory with games does not exist {os.path.abspath(self.gamesAllDir)}.')
 
         self.games = []
         for gameDir in gameDirs:
@@ -58,15 +76,15 @@ class State:
                     gameInfo['path'] = gameDir
                     self.games.append(gameInfo)
             except IOError as exc:
-                printdb(exc)
+                logger.error(f'A para_info.txt for {self.gameDir} is corrupted or missing: {exc}')
                 # TODO: Ukaz nieco uzivatelovi
                 print(f'Nemôžem otvoriť súbor {metafileName}. Existuje?')
 
 class MainWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, state, parent=None):
         super(MainWindow, self).__init__(parent)
+        self.state = state
         self.setGeometry(870, 20, 400, 400)
-        self.state = State()
         self._initTable()
         self._initButton()
         self.updateTable()
@@ -101,7 +119,6 @@ class MainWindow(QMainWindow):
         import DownloaderThread
         self.downloaderThread = DownloaderThread.DownloaderThread(self.state)
         self.downloaderThread.start()
-        printdb('spusteny thread')
 
     def updateTable(self):
         self.state.updateGameData()
@@ -136,6 +153,9 @@ class MainWindow(QMainWindow):
         subprocess.Popen([sys.executable, os.path.join(game['path'], 'main.py')])
 
 if __name__ == '__main__':
+    import sys
+    state = State()
+    loggingSetup(state.baseDir)
     app = QApplication(sys.argv)
-    w = MainWindow()
+    w = MainWindow(state)
     sys.exit(app.exec_())

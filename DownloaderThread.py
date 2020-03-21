@@ -1,4 +1,7 @@
+import logging
 from PyQt5.QtCore import QThread
+
+logger = logging.getLogger(__name__)
 
 """
 Downloads and extracts new games in a separate thread.
@@ -26,14 +29,15 @@ class DownloaderThread(QThread):
             fsize = int(r.headers['Content-Length'])
             zipPath = os.path.join(gamesRootDir, f'games.zip')
             with open(zipPath, 'wb') as fd:
+                logger.info(f'Finished {zipPath} download and extraction.')
                 read = 0
                 chunkSz = 1024
                 for chunk in r.iter_content(chunk_size=chunkSz):
                     fd.write(chunk)
                     read = min(read + chunkSz, fsize)
                     # self.progressClbk(int(100 * read / fsize))
-        except Exception as exc:
-            printdb(exc)
+        except Exception as e:
+            logger.error(f'Unable to download games: {e}')
             # TODO: Ukaz nieco uzivatelovi
             print('Funguje ti internet?')
         
@@ -54,8 +58,8 @@ class DownloaderThread(QThread):
         try:
             with zipfile.ZipFile(zipPath, 'r') as zipRef:
                 zipRef.extractall(gamesNewDir)
-        except Exception as exc:
-            printdb(f'In extract: {exc}')
+        except Exception as e:
+            logger.error(f'Unable to extract games: {e}')
             # TODO: Ukaz nieco uzivatelovi
         
         return gamesNewDir
@@ -70,16 +74,18 @@ class DownloaderThread(QThread):
         if os.path.isdir(gamesAllDir):
             try:
                 shutil.rmtree(gamesAllDir)
-            except:
-                printdb(f'Cannot remove current games directory.')
+            except Exception as e:
+                logger.error(f'Unable to delete current games directory: {e}')
                 # TODO: Toto treba rozumne oznamit uzivatelovi.
 
         # Hotofka.
         os.rename(gamesNewDir, gamesAllDir)
 
     def run(self):
+        logger.info(f'Starting {self.url} download and extraction.')
         zipPath = self._download(self.url, self.gamesRootDir)
         newDir = self._extract(zipPath, self.gamesRootDir, self.gamesAllDir)
         self._replaceGameDirectory(newDir, self.gamesAllDir)
+        logger.info(f'Finished {self.url} download and extraction.')
 
         #self.emit(SIGNAL('add_post(QString)'), top_post)
