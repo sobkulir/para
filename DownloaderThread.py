@@ -15,6 +15,7 @@ Downloads and extracts new games in a separate thread.
 class DownloaderThread(QThread):
     jakDoMaminky = pyqtSignal()
     error = pyqtSignal('QString')
+    progress = pyqtSignal('QString')
 
     def __init__(self, readOnlyState):
         QThread.__init__(self)
@@ -33,7 +34,8 @@ class DownloaderThread(QThread):
         import requests
         import zipfile
         import os
-        try: 
+        try:
+            self.progress.emit(f'Sťahovanie (hľadám páru)')
             r = requests.get(url, stream=True)
             fsize = int(r.headers['Content-Length'])
             zipPath = os.path.join(gamesRootDir, f'games.zip')
@@ -44,7 +46,7 @@ class DownloaderThread(QThread):
                 for chunk in r.iter_content(chunk_size=chunkSz):
                     fd.write(chunk)
                     read = min(read + chunkSz, fsize)
-                    # self.progressClbk(int(100 * read / fsize))
+                    self.progress.emit(f'Sťahovanie {int(read / fsize)}%')
         except Exception as e:
             logger.error(f'Unable to download games: {e}')
             self.error.emit('Funguje ti internet? Nepodarilo sa stiahnuť nové hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
@@ -60,7 +62,8 @@ class DownloaderThread(QThread):
         import shutil
         import os
         import zipfile
-        
+
+        self.progress.emit(f'Extrahovanie (nenaimplementoval som progres)')
         gamesNewDir = os.path.join(gamesRootDir, 'new')
         # Clear directory for extracted zip file.
         shutil.rmtree(gamesNewDir, ignore_errors=True)
@@ -80,7 +83,7 @@ class DownloaderThread(QThread):
     def _replaceGameDirectory(self, gamesNewDir, gamesAllDir):
         import os
         import shutil
-
+        self.progress.emit(f'Výmena zložiek')
         if os.path.isdir(gamesAllDir):
             try:
                 shutil.rmtree(gamesAllDir)
@@ -98,9 +101,8 @@ class DownloaderThread(QThread):
             zipPath = self._download(self.url, self.gamesRootDir)
             newDir = self._extract(zipPath, self.gamesRootDir, self.gamesAllDir)
             self._replaceGameDirectory(newDir, self.gamesAllDir)
-            
-            logger.info(f'Finished {self.url} download and extraction.')
             self.jakDoMaminky.emit()
+            logger.info(f'Finished {self.url} download and extraction.')
         except ExitThread:
             pass
         except Exception as e:

@@ -77,8 +77,7 @@ class State:
                     self.games.append(gameInfo)
             except IOError as exc:
                 logger.error(f'A para_info.txt for {self.gameDir} is corrupted or missing: {exc}')
-                # TODO: Ukaz nieco uzivatelovi
-                print(f'Nemôžem otvoriť súbor {metafileName}. Existuje?')
+                # The user doesn't have to know everything...
 
 class MainWindow(QMainWindow):
     def __init__(self, state, parent=None):
@@ -97,10 +96,13 @@ class MainWindow(QMainWindow):
         vBoxLayout.addWidget(self.updateBtn)
         vBoxLayout.addWidget(self.tbl)
         main_widget.setLayout(vBoxLayout)
-        status = QStatusBar()
-        status.showMessage("I'm the Status Bar")
-        self.setStatusBar(status)
+        self.setStatus("I'm the Status Bar")
         self.show()
+
+    def setStatus(self, msg):
+        status = QStatusBar()
+        status.showMessage(msg)
+        self.setStatusBar(status)
 
     def _initButton(self):
         self.updateBtn = QPushButton('Aktualizuj hry')
@@ -137,16 +139,19 @@ class MainWindow(QMainWindow):
         self.downloaderThread.jakDoMaminky.connect(self.updateTable)
         self.downloaderThread.finished.connect(afterDownload)
         self.downloaderThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, 'Nastala chyba...', msg))
+        self.downloaderThread.progress.connect(lambda msg: self.setStatus(msg))
 
     def updateTable(self):
         self.state.updateGameData()
         games = self.state.games
         self.tbl.setRowCount(len(games))
+        self.tableButtons = []
 
         for i, game in enumerate(games):
             updateBtn = QPushButton(self.tbl)
             updateBtn.setText('Hraj')
             updateBtn.clicked.connect(lambda: self.preStartGame(game))
+            self.tableButtons.append(updateBtn)
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
             self.tbl.setItem(i,2,QTableWidgetItem(game["releaseDate"]))
@@ -155,9 +160,13 @@ class MainWindow(QMainWindow):
     def installPyglet(self, game):
         def beforeInstallation():
             self.updateBtn.setEnabled(False)
-        
+            for btn in self.tableButtons:
+                btn.setEnabled(False)
+
         def afterInstallation():
             self.updateBtn.setEnabled(True)
+            for btn in self.tableButtons:
+                btn.setEnabled(True)
 
         from PygletInstallerThread import PygletInstallerThread
         self.installerThread = PygletInstallerThread()
