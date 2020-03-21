@@ -1,4 +1,5 @@
 import logging
+from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox, QHeaderView,
     QPushButton, QApplication, QMainWindow, QShortcut)
 from PyQt5.QtGui import QIcon, QKeySequence
@@ -231,8 +232,10 @@ Zdravý holky to jsou.
 
 if __name__ == '__main__':
     import sys
+    appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext    import sys
     state = State()
     loggingSetup(state.baseDir)
     app = QApplication(sys.argv)
     w = MainWindow(state)
+    exit_code = appctxt.app.exec_()      # 2. Invoke appctxt.app.exec_()
     sys.exit(app.exec_())
