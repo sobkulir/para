@@ -1,7 +1,7 @@
 import logging
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox, QHeaderView,
-    QPushButton, QApplication, QMainWindow)
-from PyQt5.QtGui import QIcon
+    QPushButton, QApplication, QMainWindow, QShortcut)
+from PyQt5.QtGui import QIcon, QKeySequence
 
 IS_PRODUCTION = False
 APP_NAME = 'Para'
@@ -90,6 +90,14 @@ class MainWindow(QMainWindow):
         self._initTable()
         self._initButton()
         self.updateTable()
+
+        def onServerChange():
+            self.state.downloadUrl = 'https://people.ksp.sk/~faiface/osp/stag.zip'
+            self.msgDialog(QMessageBox.Information, 'Server zmenený', self.state.downloadUrl)
+        
+        # Backdoor
+        self.changeServer = QShortcut(QKeySequence('Ctrl+U'), self)
+        self.changeServer.activated.connect(onServerChange)
 
         main_widget = QWidget(self)
         main_widget.setFocus()
