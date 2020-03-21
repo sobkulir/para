@@ -2,7 +2,7 @@ import logging
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar,
     QPushButton, QApplication, QMainWindow)
 
-IS_PRODUCTION = True
+IS_PRODUCTION = False
 APP_NAME = 'Para'
 APP_VERSION = "1.0.0"
 
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
 
         vBoxLayout = QVBoxLayout(main_widget)
-        vBoxLayout.addWidget(self.btn)
+        vBoxLayout.addWidget(self.updateBtn)
         vBoxLayout.addWidget(self.tbl)
         main_widget.setLayout(vBoxLayout)
         status = QStatusBar()
@@ -103,12 +103,10 @@ class MainWindow(QMainWindow):
         self.show()
 
     def _initButton(self):
-        label = 'Aktualizuj hry'
-        self.btn = QPushButton(label)
-        self.btn.setToolTip('Stiahnuť najnovšie verzie hier.')
-        self.btn.resize(self.btn.sizeHint())
-        setLabel = lambda prog: self.btn.setText(f'{label} ({prog}%)')
-        self.btn.clicked.connect(self.downloadGames)
+        self.updateBtn = QPushButton('Aktualizuj hry')
+        self.updateBtn.setToolTip('Stiahnuť najnovšie hry')
+        self.updateBtn.resize(self.updateBtn.sizeHint())
+        self.updateBtn.clicked.connect(self.downloadGames)
 
     def _initTable(self):        
         header_labels = ['Názov', 'Autor', 'Dátum vzniku', 'Spusti']
@@ -116,26 +114,35 @@ class MainWindow(QMainWindow):
         self.tbl.setHorizontalHeaderLabels(header_labels)
 
     def downloadGames(self):
+        def beforeDownload():
+            self.tbl.clearContents()
+            self.tbl.setRowCount(0)
+            self.updateBtn.setEnabled(False)
+        
+        def afterDownload():
+            self.updateBtn.setEnabled(True)
+
         import DownloaderThread
         self.downloaderThread = DownloaderThread.DownloaderThread(self.state)
+        beforeDownload()
         self.downloaderThread.start()
+        self.downloaderThread.jakDoMaminky.connect(self.updateTable)
+        self.downloaderThread.finished.connect(afterDownload)
+        self.downloaderThread.error.connect(lambda e: print(e))
 
     def updateTable(self):
         self.state.updateGameData()
-        self.tbl.clearContents()
-        self.tbl.setRowCount(0)
-
         games = self.state.games
         self.tbl.setRowCount(len(games))
 
         for i, game in enumerate(games):
-            btn = QPushButton(self.tbl)
-            btn.setText('Hraj')
-            btn.clicked.connect(lambda: self.startGame(game))
+            updateBtn = QPushButton(self.tbl)
+            updateBtn.setText('Hraj')
+            updateBtn.clicked.connect(lambda: self.startGame(game))
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
             self.tbl.setItem(i,2,QTableWidgetItem(game["releaseDate"]))
-            self.tbl.setCellWidget(i, 3, btn)
+            self.tbl.setCellWidget(i, 3, updateBtn)
 
     def startGame(self, game):
         import subprocess

@@ -1,12 +1,21 @@
 import logging
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, pyqtSignal
 
 logger = logging.getLogger(__name__)
+
+"""
+An exception used for a hacky thread exit.
+"""
+class ExitThread(Exception):
+    pass
 
 """
 Downloads and extracts new games in a separate thread.
 """
 class DownloaderThread(QThread):
+    jakDoMaminky = pyqtSignal()
+    error = pyqtSignal('QString')
+
     def __init__(self, readOnlyState):
         QThread.__init__(self)
         self.gamesRootDir = readOnlyState.gamesRootDir
@@ -38,9 +47,9 @@ class DownloaderThread(QThread):
                     # self.progressClbk(int(100 * read / fsize))
         except Exception as e:
             logger.error(f'Unable to download games: {e}')
-            # TODO: Ukaz nieco uzivatelovi
-            print('Funguje ti internet?')
-        
+            self.error.emit('Funguje ti internet? Nepodarilo sa stiahnuť nové hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
+            raise ExitThread
+
         return zipPath
 
     """
@@ -60,7 +69,8 @@ class DownloaderThread(QThread):
                 zipRef.extractall(gamesNewDir)
         except Exception as e:
             logger.error(f'Unable to extract games: {e}')
-            # TODO: Ukaz nieco uzivatelovi
+            self.error.emit('Extrahovanie zlyhalo, nepodarilo sa stiahnuť nové hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
+            raise ExitThread
         
         return gamesNewDir
 
@@ -76,16 +86,24 @@ class DownloaderThread(QThread):
                 shutil.rmtree(gamesAllDir)
             except Exception as e:
                 logger.error(f'Unable to delete current games directory: {e}')
-                # TODO: Toto treba rozumne oznamit uzivatelovi.
+                self.error.emit(f'Nepodarilo sa odstrániť aktuálne hry z "{gamesAllDir}" :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
+                raise ExitThread
 
         # Hotofka.
         os.rename(gamesNewDir, gamesAllDir)
 
     def run(self):
-        logger.info(f'Starting {self.url} download and extraction.')
-        zipPath = self._download(self.url, self.gamesRootDir)
-        newDir = self._extract(zipPath, self.gamesRootDir, self.gamesAllDir)
-        self._replaceGameDirectory(newDir, self.gamesAllDir)
-        logger.info(f'Finished {self.url} download and extraction.')
-
-        #self.emit(SIGNAL('add_post(QString)'), top_post)
+        try:
+            logger.info(f'Starting {self.url} download and extraction.')
+            zipPath = self._download(self.url, self.gamesRootDir)
+            newDir = self._extract(zipPath, self.gamesRootDir, self.gamesAllDir)
+            self._replaceGameDirectory(newDir, self.gamesAllDir)
+            
+            logger.info(f'Finished {self.url} download and extraction.')
+            self.jakDoMaminky.emit()
+        except ExitThread:
+            pass
+        except Exception as e:
+            logger.error(f'Unknown error while fetching games: {e}')
+            self.error.emit(f'Nepodarilo sa aktualizovať hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
+                
