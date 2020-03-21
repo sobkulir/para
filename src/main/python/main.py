@@ -170,7 +170,9 @@ class MainWindow(QMainWindow):
         for i, game in enumerate(games):
             updateBtn = QPushButton(self.tbl)
             updateBtn.setText('Hraj')
-            updateBtn.clicked.connect(lambda: self.startGameProcess(game))
+            def onClick(game):
+                return lambda: self.startGameProcess(game)
+            updateBtn.clicked.connect(onClick(game))
             self.tableButtons.append(updateBtn)
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
@@ -180,6 +182,7 @@ class MainWindow(QMainWindow):
         self.tbl.resizeColumnsToContents()
 
     def startGameProcess(self, game):
+        print(game)
         logger.info(f'Starting game: {game["path"]}')
         from multiprocessing import Process, Queue
         p = Process(target=startGame, args=(game['path'],))
@@ -196,9 +199,8 @@ def startGame(gameDir):
     # explicit path specifitaction is need.
     pyglet.resource.path = [os.getcwd()]
     
-    # Finally, import game and profit.
-    import game
-    game.Game().run()
+    import runpy
+    runpy.run_path(os.path.join(gameDir, 'game.py'), init_globals=None, run_name=None)
 
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext    import sys
