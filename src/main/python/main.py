@@ -82,7 +82,7 @@ class State:
                     gameInfo['path'] = gameDir
                     self.games.append(gameInfo)
             except IOError as exc:
-                logger.error(f'A para_info.txt for {self.gameDir} is corrupted or missing: {exc}')
+                logger.error(f'A para_info.txt for {gameDir} is corrupted or missing: {exc}')
                 # The user doesn't have to know everything...
 
 class MainWindow(QMainWindow):
@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         p.daemon = True
         p.start()
 
-def startGame(gameDir):
+def threaded_function(gameDir):
     import os
     import sys
     os.chdir(os.path.abspath(gameDir))
@@ -197,10 +197,19 @@ def startGame(gameDir):
     # Pyglet does look in __main__ dir, not cwd. Therefore
     # explicit path specifitaction is need.
     pyglet.resource.path = [os.getcwd()]
-    
-    # Finally, import game and profit.
+    # import runpy
+    # runpy.run_path(os.path.join(gameDir, 'game.py'))
+
+    # # Finally, import game and profit.
     import game
     game.Game().run()
+
+def startGame(gameDir):
+    from threading import Thread
+    thread = Thread(target = threaded_function, args=(gameDir, ))
+    thread.start()
+    thread.join()
+
 
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext    import sys

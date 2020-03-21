@@ -46,7 +46,7 @@ class DownloaderThread(QThread):
                 for chunk in r.iter_content(chunk_size=chunkSz):
                     fd.write(chunk)
                     read = min(read + chunkSz, fsize)
-                    self.progress.emit(f'Sťahovanie {int(read / fsize)}%')
+                    self.progress.emit(f'Sťahovanie {int(100 * read / fsize)}%')
         except Exception as e:
             logger.error(f'Unable to download games: {e}')
             self.error.emit('Funguje ti internet? Nepodarilo sa stiahnuť nové hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
