@@ -113,10 +113,10 @@ class MainWindow(QMainWindow):
         self.tbl = QTableWidget(0,len(header_labels))
         self.tbl.setHorizontalHeaderLabels(header_labels)
 
-    def errorDialog(self, msg):
+    def msgDialog(self, icon, txt, msg):
         dialog = QMessageBox()
-        dialog.setIcon(QMessageBox.Critical)
-        dialog.setText('Nastala chyba...')
+        dialog.setIcon(icon)
+        dialog.setText(txt)
         dialog.setInformativeText(msg)
         dialog.setWindowTitle('PARAnormal activity!')
         dialog.exec_()
@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
         self.downloaderThread.start()
         self.downloaderThread.jakDoMaminky.connect(self.updateTable)
         self.downloaderThread.finished.connect(afterDownload)
-        self.downloaderThread.error.connect(lambda msg: self.errorDialog(msg))
+        self.downloaderThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, 'Nastala chyba...', msg))
 
     def updateTable(self):
         self.state.updateGameData()
@@ -146,25 +146,60 @@ class MainWindow(QMainWindow):
         for i, game in enumerate(games):
             updateBtn = QPushButton(self.tbl)
             updateBtn.setText('Hraj')
-            updateBtn.clicked.connect(lambda: self.startGame(game))
+            updateBtn.clicked.connect(lambda: self.preStartGame(game))
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
             self.tbl.setItem(i,2,QTableWidgetItem(game["releaseDate"]))
             self.tbl.setCellWidget(i, 3, updateBtn)
 
-    def startGame(self, game):
-        import subprocess
-        import sys
-        import os
+    def installPyglet(self, game):
+        def beforeInstallation():
+            self.updateBtn.setEnabled(False)
+        
+        def afterInstallation():
+            self.updateBtn.setEnabled(True)
 
-        # Hacks used:
-        # https://stackoverflow.com/questions/12332975/installing-python-module-within-code
-        # https://stackoverflow.com/questions/14050281/how-to-check-if-a-python-module-exists-without-importing-it
+        from PygletInstallerThread import PygletInstallerThread
+        self.installerThread = PygletInstallerThread()
+        beforeInstallation()
+        self.installerThread.start()
+        self.installerThread.finished.connect(afterInstallation)
+        self.installerThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, msg))
+        self.installerThread.jakDoMaminky.connect(lambda: self.startGame(game))
+        self.msgDialog(QMessageBox.Information, 'Inštaluje sa pyglet :)',
+'''
+Všetko je tak ako má byť, nenastala chyba. Inštaluje sa balíček pyglet, ktorý je potrebný k easygame. Nestihol som sem \
+doprogramovať progress bar, takže ako náhradu ti sem dám pár básničiek (FB: Špatné básně):
+Báseň o sprše a gravitaci
+-------------------
+Když si dávám sprchu,
+voda na mě teče
+svrchu.
+
+Báseň o rozdělávání ohně v ráji
+-------------------
+Dones dřevo,
+Evo.
+
+Normální lidská existence vol. 2
+-------------------
+Moje tři neteře
+mají v součtu
+tři páteře.
+Zdravý holky to jsou.
+''')
+
+    def preStartGame(self, game):
         try:
             import pyglet
+            self.startGame(game)
         except:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "pyglet"])
+            self.installPyglet(game)
 
+    def startGame(self, game):
+        import subprocess
+        import sys 
+        import os
         subprocess.Popen([sys.executable, os.path.join(game['path'], 'main.py')])
 
 if __name__ == '__main__':
