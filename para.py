@@ -1,5 +1,5 @@
 import logging
-from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar,
+from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox,
     QPushButton, QApplication, QMainWindow)
 
 IS_PRODUCTION = False
@@ -113,6 +113,14 @@ class MainWindow(QMainWindow):
         self.tbl = QTableWidget(0,len(header_labels))
         self.tbl.setHorizontalHeaderLabels(header_labels)
 
+    def errorDialog(self, msg):
+        dialog = QMessageBox()
+        dialog.setIcon(QMessageBox.Critical)
+        dialog.setText('Nastala chyba...')
+        dialog.setInformativeText(msg)
+        dialog.setWindowTitle('PARAnormal activity!')
+        dialog.exec_()
+
     def downloadGames(self):
         def beforeDownload():
             self.tbl.clearContents()
@@ -128,7 +136,7 @@ class MainWindow(QMainWindow):
         self.downloaderThread.start()
         self.downloaderThread.jakDoMaminky.connect(self.updateTable)
         self.downloaderThread.finished.connect(afterDownload)
-        self.downloaderThread.error.connect(lambda e: print(e))
+        self.downloaderThread.error.connect(lambda msg: self.errorDialog(msg))
 
     def updateTable(self):
         self.state.updateGameData()

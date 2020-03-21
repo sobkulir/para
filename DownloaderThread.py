@@ -106,4 +106,3 @@ class DownloaderThread(QThread):
         except Exception as e:
             logger.error(f'Unknown error while fetching games: {e}')
             self.error.emit(f'Nepodarilo sa aktualizovať hry :( Napíš mi na Discorde (sobkulir) alebo na email r.sobkuliak@gmail.com.')
-                
