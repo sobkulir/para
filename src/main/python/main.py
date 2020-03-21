@@ -198,8 +198,9 @@ def startGame(gameDir):
     # explicit path specifitaction is need.
     pyglet.resource.path = [os.getcwd()]
     
-    import runpy
-    runpy.run_path(os.path.join(gameDir, 'game.py'), init_globals=None, run_name=None)
+    # Finally, import game and profit.
+    import game
+    game.Game().run()
 
 if __name__ == '__main__':
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext    import sys
