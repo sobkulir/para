@@ -2,12 +2,12 @@ import logging
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox, QHeaderView,
     QPushButton, QApplication, QMainWindow, QShortcut)
-from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtCore import QProcess
 
 IS_PRODUCTION = True
 APP_NAME = 'Para'
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,9 @@ class State:
         else:
             # Directory of the executed script
             # SO: https://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
-            self.baseDir = os.path.dirname(os.path.realpath(__file__))
+            from os.path import expanduser
+            # ~/.para/
+            self.baseDir = os.path.join(expanduser("~"), '.para')
 
     def updateGameData(self):
         import json
