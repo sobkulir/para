@@ -1,6 +1,7 @@
 import logging
-from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox,
+from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox, QHeaderView,
     QPushButton, QApplication, QMainWindow)
+from PyQt5.QtGui import QIcon
 
 IS_PRODUCTION = False
 APP_NAME = 'Para'
@@ -26,7 +27,7 @@ class State:
         import os
 
         self._setBaseDir()
-        self.downloadUrl = 'https://raw.github.com/sobkulir/test/master/hry.zip'
+        self.downloadUrl = 'https://people.ksp.sk/~faiface/osp/hry.zip'
         self.games = []        
         self.gamesRootDir = os.path.join(self.baseDir, 'games')
         self.gamesAllDir = os.path.join(self.gamesRootDir, 'all')
@@ -83,7 +84,9 @@ class MainWindow(QMainWindow):
     def __init__(self, state, parent=None):
         super(MainWindow, self).__init__(parent)
         self.state = state
-        self.setGeometry(870, 20, 400, 400)
+        self.setWindowTitle(f'{APP_NAME} {APP_VERSION}')
+        self.setWindowIcon(QIcon('icon.png'))
+        self.setGeometry(600, 400, 600, 400)
         self._initTable()
         self._initButton()
         self.updateTable()
@@ -114,6 +117,11 @@ class MainWindow(QMainWindow):
         header_labels = ['Názov', 'Autor', 'Dátum vzniku', 'Spusti']
         self.tbl = QTableWidget(0,len(header_labels))
         self.tbl.setHorizontalHeaderLabels(header_labels)
+        header = self.tbl.horizontalHeader()       
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
 
     def msgDialog(self, icon, txt, msg):
         dialog = QMessageBox()
@@ -156,6 +164,8 @@ class MainWindow(QMainWindow):
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
             self.tbl.setItem(i,2,QTableWidgetItem(game["releaseDate"]))
             self.tbl.setCellWidget(i, 3, updateBtn)
+        
+        self.tbl.resizeColumnsToContents()
 
     def installPyglet(self, game):
         def beforeInstallation():
