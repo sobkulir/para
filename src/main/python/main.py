@@ -3,8 +3,9 @@ from fbs_runtime.application_context.PyQt5 import ApplicationContext
 from PyQt5.QtWidgets import (QWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QStatusBar, QMessageBox, QHeaderView,
     QPushButton, QApplication, QMainWindow, QShortcut)
 from PyQt5.QtGui import QIcon, QKeySequence
+from PyQt5.QtCore import QProcess
 
-IS_PRODUCTION = False
+IS_PRODUCTION = True
 APP_NAME = 'Para'
 APP_VERSION = "1.0.0"
 
@@ -22,13 +23,14 @@ def loggingSetup(baseDir):
         logging.basicConfig(filename=fname, filemode='w', format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
     else:
         logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
-
+    
 class State:
     def __init__(self):
         import os
 
         self._setBaseDir()
-        self.downloadUrl = 'https://people.ksp.sk/~faiface/osp/hry.zip'
+        self.downloadUrl = 'https://people.ksp.sk/~faiface/osp_games/all.zip'
+        self.hiddenStagingUrl = 'https://people.ksp.sk/~faiface/osp_games/stag.zip'
         self.games = []        
         self.gamesRootDir = os.path.join(self.baseDir, 'games')
         self.gamesAllDir = os.path.join(self.gamesRootDir, 'all')
@@ -86,14 +88,13 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.state = state
         self.setWindowTitle(f'{APP_NAME} {APP_VERSION}')
-        self.setWindowIcon(QIcon('icon.png'))
         self.setGeometry(600, 400, 600, 400)
         self._initTable()
         self._initButton()
         self.updateTable()
 
         def onServerChange():
-            self.state.downloadUrl = 'https://people.ksp.sk/~faiface/osp/stag.zip'
+            self.state.downloadUrl = self.state.hiddenStagingUrl
             self.msgDialog(QMessageBox.Information, 'Server zmenený', self.state.downloadUrl)
         
         # Backdoor
@@ -167,7 +168,7 @@ class MainWindow(QMainWindow):
         for i, game in enumerate(games):
             updateBtn = QPushButton(self.tbl)
             updateBtn.setText('Hraj')
-            updateBtn.clicked.connect(lambda: self.preStartGame(game))
+            updateBtn.clicked.connect(lambda: self.startGameProcess(game))
             self.tableButtons.append(updateBtn)
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
@@ -176,66 +177,38 @@ class MainWindow(QMainWindow):
         
         self.tbl.resizeColumnsToContents()
 
-    def installPyglet(self, game):
-        def beforeInstallation():
-            self.updateBtn.setEnabled(False)
-            for btn in self.tableButtons:
-                btn.setEnabled(False)
+    def startGameProcess(self, game):
+        logger.info(f'Starting game: {game["path"]}')
+        from multiprocessing import Process, Queue
+        p = Process(target=startGame, args=(game['path'],))
+        p.daemon = True
+        p.start()
 
-        def afterInstallation():
-            self.updateBtn.setEnabled(True)
-            for btn in self.tableButtons:
-                btn.setEnabled(True)
-
-        from PygletInstallerThread import PygletInstallerThread
-        self.installerThread = PygletInstallerThread()
-        beforeInstallation()
-        self.installerThread.start()
-        self.installerThread.finished.connect(afterInstallation)
-        self.installerThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, msg))
-        self.installerThread.jakDoMaminky.connect(lambda: self.startGame(game))
-        self.msgDialog(QMessageBox.Information, 'Inštaluje sa pyglet :)',
-'''
-Všetko je tak ako má byť, nenastala chyba. Inštaluje sa balíček pyglet, ktorý je potrebný k easygame. Nestihol som sem \
-doprogramovať progress bar, takže ako náhradu ti sem dám pár básničiek (FB: Špatné básně):
-Báseň o sprše a gravitaci
--------------------
-Když si dávám sprchu,
-voda na mě teče
-svrchu.
-
-Báseň o rozdělávání ohně v ráji
--------------------
-Dones dřevo,
-Evo.
-
-Normální lidská existence vol. 2
--------------------
-Moje tři neteře
-mají v součtu
-tři páteře.
-Zdravý holky to jsou.
-''')
-
-    def preStartGame(self, game):
-        try:
-            import pyglet
-            self.startGame(game)
-        except:
-            self.installPyglet(game)
-
-    def startGame(self, game):
-        import subprocess
-        import sys 
-        import os
-        subprocess.Popen([sys.executable, os.path.join(game['path'], 'main.py')])
+def startGame(gameDir):
+    import os
+    import sys
+    os.chdir(os.path.abspath(gameDir))
+    sys.path.append(os.getcwd())
+    import pyglet
+    # Pyglet does look in __main__ dir, not cwd. Therefore
+    # explicit path specifitaction is need.
+    pyglet.resource.path = [os.getcwd()]
+    
+    # Finally, import game and profit.
+    import game
+    game.Game().run()
 
 if __name__ == '__main__':
-    import sys
     appctxt = ApplicationContext()       # 1. Instantiate ApplicationContext    import sys
+    
+    # Fix for spawning multiple windows after freeze: https://github.com/mherrmann/fbs/issues/87
+    import multiprocessing
+    multiprocessing.freeze_support()
+
+    import sys
     state = State()
     loggingSetup(state.baseDir)
     app = QApplication(sys.argv)
     w = MainWindow(state)
     exit_code = appctxt.app.exec_()      # 2. Invoke appctxt.app.exec_()
-    sys.exit(app.exec_())
+    sys.exit(exit_code)
