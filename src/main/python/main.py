@@ -7,7 +7,7 @@ from PyQt5.QtCore import QProcess
 
 IS_PRODUCTION = True
 APP_NAME = 'Para'
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +182,6 @@ class MainWindow(QMainWindow):
         self.tbl.resizeColumnsToContents()
 
     def startGameProcess(self, game):
-        print(game)
         logger.info(f'Starting game: {game["path"]}')
         from multiprocessing import Process, Queue
         p = Process(target=startGame, args=(game['path'],))
