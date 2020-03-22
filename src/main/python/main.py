@@ -83,7 +83,7 @@ class State:
                     self.games.append(gameInfo)
             except IOError as exc:
                 logger.error(f'A para_info.txt for {gameDir} is corrupted or missing: {exc}')
-                # The user doesn't have to know everything...
+                raise exc
 
         self.games.sort(key=lambda game: game['releaseDate'], reverse=True)
 
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(600, 400, 600, 400)
         self._initTable()
         self._initButton()
-        self.updateTable()
+        self.updateTableSafe()
 
         def onServerChange():
             self.state.downloadUrl = self.state.hiddenStagingUrl
@@ -158,10 +158,20 @@ class MainWindow(QMainWindow):
         self.downloaderThread = DownloaderThread.DownloaderThread(self.state)
         beforeDownload()
         self.downloaderThread.start()
-        self.downloaderThread.jakDoMaminky.connect(self.updateTable)
+        self.downloaderThread.jakDoMaminky.connect(self.updateTableSafe)
         self.downloaderThread.finished.connect(afterDownload)
         self.downloaderThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, 'Nastala chyba...', msg))
         self.downloaderThread.progress.connect(lambda msg: self.setStatus(msg))
+
+    def updateTableSafe(self):
+        try:
+            self.updateTable()
+        except:
+            self.msgDialog(QMessageBox.Critical, 'Nepodarilo sa načítať hry zo súboru.',
+'''
+Skús stiahnúť najnovšiu verziu hier - "Aktualizovať hry". Ak chyba pretrváva, kontaktuj prosím sobkulir na Discorde alebo \
+r.sobkuliak@gmail.com
+'''            )
 
     def updateTable(self):
         import datetime
