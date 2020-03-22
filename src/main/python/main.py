@@ -7,7 +7,7 @@ from PyQt5.QtCore import QProcess
 
 IS_PRODUCTION = True
 APP_NAME = 'Para'
-APP_VERSION = "1.0.2"
+APP_VERSION = "0.0.1"
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,8 @@ class State:
             except IOError as exc:
                 logger.error(f'A para_info.txt for {gameDir} is corrupted or missing: {exc}')
                 # The user doesn't have to know everything...
+
+        self.games.sort(key=lambda game: game['releaseDate'], reverse=True)
 
 class MainWindow(QMainWindow):
     def __init__(self, state, parent=None):
@@ -162,6 +164,7 @@ class MainWindow(QMainWindow):
         self.downloaderThread.progress.connect(lambda msg: self.setStatus(msg))
 
     def updateTable(self):
+        import datetime
         self.state.updateGameData()
         games = self.state.games
         self.tbl.setRowCount(len(games))
@@ -176,7 +179,8 @@ class MainWindow(QMainWindow):
             self.tableButtons.append(updateBtn)
             self.tbl.setItem(i,0,QTableWidgetItem(game["name"]))
             self.tbl.setItem(i,1,QTableWidgetItem(game["author"]))
-            self.tbl.setItem(i,2,QTableWidgetItem(game["releaseDate"]))
+            releaseDate = datetime.datetime.strptime(game["releaseDate"], '%Y-%m-%d %H:%M')
+            self.tbl.setItem(i,2,QTableWidgetItem(releaseDate.strftime('%Y-%m-%d')))
             self.tbl.setCellWidget(i, 3, updateBtn)
         
         self.tbl.resizeColumnsToContents()
@@ -184,11 +188,11 @@ class MainWindow(QMainWindow):
     def startGameProcess(self, game):
         logger.info(f'Starting game: {game["path"]}')
         from multiprocessing import Process, Queue
-        p = Process(target=startGame, args=(game['path'],))
+        p = Process(target=startGameThread, args=(game['path'],))
         p.daemon = True
         p.start()
 
-def threaded_function(gameDir):
+def startGame(gameDir):
     import os
     import sys
     os.chdir(os.path.abspath(gameDir))
@@ -197,16 +201,16 @@ def threaded_function(gameDir):
     # Pyglet does look in __main__ dir, not cwd. Therefore
     # explicit path specifitaction is need.
     pyglet.resource.path = [os.getcwd()]
-    # import runpy
-    # runpy.run_path(os.path.join(gameDir, 'game.py'))
 
-    # # Finally, import game and profit.
-    import game
-    game.Game().run()
+    # And Run!
+    import runpy
+    runpy.run_path(os.path.join(gameDir, 'game.py'))
 
-def startGame(gameDir):
+# Because of Windows sharing window of forked process (or something like that)
+# we need to spawn a new thread.
+def startGameThread(gameDir):
     from threading import Thread
-    thread = Thread(target = threaded_function, args=(gameDir, ))
+    thread = Thread(target = startGame, args=(gameDir, ))
     thread.start()
     thread.join()
 
