@@ -203,18 +203,22 @@ r.sobkuliak@gmail.com
         p.start()
 
 def startGame(gameDir):
-    import os
-    import sys
-    os.chdir(os.path.abspath(gameDir))
-    sys.path.append(os.getcwd())
-    import pyglet
-    # Pyglet does look in __main__ dir, not cwd. Therefore
-    # explicit path specifitaction is need.
-    pyglet.resource.path = [os.getcwd()]
+    try:
+        logger.info('In game thread')
+        import os
+        import sys
+        os.chdir(os.path.abspath(gameDir))
+        sys.path.append(os.getcwd())
+        import pyglet
+        # Pyglet does look in __main__ dir, not cwd. Therefore
+        # explicit path specifitaction is need.
+        pyglet.resource.path = [os.getcwd()]
 
-    # And Run!
-    import runpy
-    runpy.run_path(os.path.join(gameDir, 'game.py'))
+        # And Run!
+        import runpy
+        runpy.run_path(os.path.join(gameDir, 'game.py'))
+    except Exception as e:
+        logger.critical(f'Game crashed: {e}')
 
 # Because of Windows sharing window of forked process (or something like that)
 # we need to spawn a new thread.
