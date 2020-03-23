@@ -2,5 +2,5 @@
     "app_name": "Para",
     "author": "Roman Sobkuliak",
     "main_module": "src/main/python/main.py",
-    "version": "1.0.0"
+    "version": "0.0.1"
 }

@@ -1,6 +1,6 @@
 {
-    "categories": "Utility;",
-    "description": "",
-    "author_email": "",
-    "url": ""
+    "categories": "Gaming;Utility;",
+    "description": "Para is a client for sharing games created via Easygame library.",
+    "author_email": "r.sobkuliak@gmail.com",
+    "url": "https://github.com/sobkulir/para"
 }

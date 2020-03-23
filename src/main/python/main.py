@@ -19,8 +19,8 @@ def loggingSetup(baseDir):
         from utils import ensureDirExist
         logsDir = os.path.join(baseDir, 'logs')
         ensureDirExist(logsDir)
-        fname = os.path.join(logsDir, datetime.now().strftime('para_%H_%M_%d_%m_%Y.log'))
-        logging.basicConfig(filename=fname, filemode='w', format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
+        fPath = os.path.join(logsDir, 'logs.txt')
+        logging.basicConfig(filename=fPath, filemode='a', format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
     else:
         logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
     
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         self.downloaderThread = DownloaderThread.DownloaderThread(self.state)
         beforeDownload()
         self.downloaderThread.start()
-        self.downloaderThread.jakDoMaminky.connect(self.updateTableSafe)
+        self.downloaderThread.hotofka.connect(self.updateTableSafe)
         self.downloaderThread.finished.connect(afterDownload)
         self.downloaderThread.error.connect(lambda msg: self.msgDialog(QMessageBox.Critical, 'Nastala chyba...', msg))
         self.downloaderThread.progress.connect(lambda msg: self.setStatus(msg))
@@ -216,7 +216,7 @@ def startGame(gameDir):
 
         # And Run!
         import runpy
-        runpy.run_path(os.path.join(gameDir, 'game.py'))
+        runpy.run_path(os.path.join(gameDir, 'game.py'), run_name='__main__')
     except Exception as e:
         logger.critical(f'Game crashed: {e}')
 

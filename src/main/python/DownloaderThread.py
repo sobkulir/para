@@ -13,7 +13,7 @@ class ExitThread(Exception):
 Downloads and extracts new games in a separate thread.
 """
 class DownloaderThread(QThread):
-    jakDoMaminky = pyqtSignal()
+    hotofka = pyqtSignal()
     error = pyqtSignal('QString')
     progress = pyqtSignal('QString')
 
@@ -42,7 +42,7 @@ class DownloaderThread(QThread):
             with open(zipPath, 'wb') as fd:
                 logger.info(f'Finished {zipPath} download and extraction.')
                 read = 0
-                chunkSz = 1024
+                chunkSz = 128 * 1024
                 for chunk in r.iter_content(chunk_size=chunkSz):
                     fd.write(chunk)
                     read = min(read + chunkSz, fsize)
@@ -101,7 +101,7 @@ class DownloaderThread(QThread):
             zipPath = self._download(self.url, self.gamesRootDir)
             newDir = self._extract(zipPath, self.gamesRootDir, self.gamesAllDir)
             self._replaceGameDirectory(newDir, self.gamesAllDir)
-            self.jakDoMaminky.emit()
+            self.hotofka.emit()
             logger.info(f'Finished {self.url} download and extraction.')
         except ExitThread:
             pass
