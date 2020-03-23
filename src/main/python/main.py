@@ -204,15 +204,11 @@ r.sobkuliak@gmail.com
 
 def startGame(gameDir):
     try:
-        logger.info('In game thread')
+        logger.info(f'In game thread: {gameDir}')
         import os
         import sys
         os.chdir(os.path.abspath(gameDir))
         sys.path.append(os.getcwd())
-        import pyglet
-        # Pyglet does look in __main__ dir, not cwd. Therefore
-        # explicit path specifitaction is need.
-        pyglet.resource.path = [os.getcwd()]
 
         # And Run!
         import runpy
