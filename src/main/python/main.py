@@ -83,7 +83,7 @@ class State:
                     self.games.append(gameInfo)
             except IOError as exc:
                 logger.error(f'A para_info.txt for {gameDir} is corrupted or missing: {exc}')
-                raise exc
+                raise
 
         self.games.sort(key=lambda game: game['releaseDate'], reverse=True)
 
@@ -166,7 +166,8 @@ class MainWindow(QMainWindow):
     def updateTableSafe(self):
         try:
             self.updateTable()
-        except:
+        except Exception as e:
+            logger.info(f'Unable to update table: {e}')
             self.msgDialog(QMessageBox.Critical, 'Nepodarilo sa načítať hry zo súboru.',
 '''
 Skús stiahnúť najnovšiu verziu hier - "Aktualizovať hry". Ak chyba pretrváva, kontaktuj prosím sobkulir na Discorde alebo \
@@ -197,24 +198,37 @@ r.sobkuliak@gmail.com
 
     def startGameProcess(self, game):
         logger.info(f'Starting game: {game["path"]}')
-        from multiprocessing import Process, Queue
+        from multiprocessing import Process
         p = Process(target=startGameThread, args=(game['path'],))
         p.daemon = True
         p.start()
 
 def startGame(gameDir):
     try:
-        logger.info(f'In game thread: {gameDir}')
         import os
         import sys
         os.chdir(os.path.abspath(gameDir))
         sys.path.append(os.getcwd())
 
+        # For surity
+        import pygame
+        import pyglet
+        # Pyglet does look in __main__ dir, not cwd. Therefore
+        # explicit path specifitaction is need.
+        pyglet.resource.path = [os.getcwd()]
+
         # And Run!
         import runpy
         runpy.run_path(os.path.join(gameDir, 'game.py'), run_name='__main__')
     except Exception as e:
+        import uuid
+        fPath = os.path.join(gameDir, f'crash_report_{uuid.uuid4()}.txt')
+        logging.basicConfig(filename=fPath, filemode='a', format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S', level=logging.INFO)
         logger.critical(f'Game crashed: {e}')
+        # Print more info (stacktrace)
+        import traceback
+        logger.critical(traceback.format_exc())
+        raise
 
 # Because of Windows sharing window of forked process (or something like that)
 # we need to spawn a new thread.
