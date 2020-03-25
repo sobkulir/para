@@ -216,8 +216,7 @@ def start_game(game_dir):
         # Pyglet does look in __main__ dir, not cwd. Therefore
         # explicit path specification is need.
         pyglet.resource.path = [os.getcwd()]
-
-        runpy.run_path(os.path.join(game_dir, 'game.py'), run_name='__main__')
+        os.system(f'python game.py')
     except Exception as e:
         f_path = os.path.join(game_dir, f'crash_report_{uuid.uuid4()}.txt')
         logging.basicConfig(filename=f_path, filemode='a', format='%(asctime)s - %(message)s',
