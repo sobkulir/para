@@ -7,7 +7,6 @@ import sys
 import uuid
 from datetime import datetime
 from multiprocessing import Process
-from os.path import expanduser
 from sys import platform
 from threading import Thread
 
@@ -67,7 +66,7 @@ class State:
             # SO: https://stackoverflow.com/questions/4934806/how-can-i-find-scripts-directory-with-python
 
             # ~/.para/
-            self.base_dir = os.path.join(expanduser("~"), '.para')
+            self.base_dir = os.path.join(os.expanduser("~"), '.para')
 
     def update_game_data(self):
         if not os.path.isdir(self.games_all_dir):
@@ -82,15 +81,15 @@ class State:
             logger.debug(f'The directory with games does not exist {os.path.abspath(self.games_all_dir)}.')
 
         self.games = []
-        for gameDir in game_dirs:
-            metafile_name = os.path.join(gameDir, 'para_info.txt')
+        for game_dir in game_dirs:
+            metafile_name = os.path.join(game_dir, 'para_info.txt')
             try:
                 with open(metafile_name, 'r') as metafile:
                     game_info = json.load(metafile)
-                    game_info['path'] = gameDir
+                    game_info['path'] = game_dir
                     self.games.append(game_info)
             except IOError as exc:
-                logger.error(f'A para_info.txt for {gameDir} is corrupted or missing: {exc}')
+                logger.error(f'A para_info.txt for {game_dir} is corrupted or missing: {exc}')
                 raise
 
         self.games.sort(key=lambda game: game['releaseDate'], reverse=True)
