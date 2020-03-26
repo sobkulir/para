@@ -162,13 +162,13 @@ class MainWindow(QMainWindow):
         def after_download():
             self.updateBtn.setEnabled(True)
 
-        downloader_thread = DownloaderThread(self.state)
         before_download()
-        downloader_thread.start()
-        downloader_thread.hotofka.connect(self.update_table_safe)
-        downloader_thread.finished.connect(after_download)
-        downloader_thread.error.connect(lambda msg: self.msg_dialog(QMessageBox.Critical, 'Nastala chyba...', msg))
-        downloader_thread.progress.connect(lambda msg: self.set_status(msg))
+        self.downloader_thread = DownloaderThread(self.state)
+        self.downloader_thread.hotofka.connect(self.update_table_safe)
+        self.downloader_thread.finished.connect(after_download)
+        self.downloader_thread.error.connect(lambda msg: self.msg_dialog(QMessageBox.Critical, 'Nastala chyba...', msg))
+        self.downloader_thread.progress.connect(lambda msg: self.set_status(msg))
+        self.downloader_thread.start()
 
     def update_table_safe(self):
         try:
