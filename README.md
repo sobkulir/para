@@ -1,10 +1,9 @@
 # Para
 Para je jednoduchý herný klient. Sťahuje hry zo serveru a dovoľuje užívateľom ich spustiť.
+![Alt text](screenshot.png?raw=true "Screenshot z Ubuntu")
 
 ## Inštalácia
-Existujú installery, zatiaľ iba pre Windowsy a Debiany:
-* Windows: [para_installer_win.exe](https://people.ksp.sk/~faiface/osp_games/para_installer_win.exe)
-* Linux Debian: [para-deb-1-0-1.deb](https://people.ksp.sk/~faiface/osp_games/para-deb-1-0-1.deb)
+Pre Windows a Ubuntu už existujú installery, nájdete ich v [releases](https://github.com/sobkulir/para/releases).
 
 ## Spustenie zo zdrojákov
 Treba stiahnuť repozitár pomocou `git clone https://github.com/sobkulir/para`. Potom sa postup líši na win/linux kvôli aktivovaniu `virtualenv`.
